@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Проверка региона</title>
 <style>
   * { box-sizing: border-box; }
@@ -60,6 +61,8 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
+
+  /* === Плеер === */
   .player {
     position: relative;
     width: 100%;
@@ -76,6 +79,71 @@
     width: 100%; height: 100%;
     border: 0;
   }
+
+  /* Превью до запуска */
+  .preview {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+  }
+  .preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.25);
+  }
+  .play-btn {
+    position: relative;
+    z-index: 2;
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    background: rgba(255,45,45,.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 24px rgba(0,0,0,.5);
+    transition: transform .15s ease;
+  }
+  .preview:hover .play-btn { transform: scale(1.08); }
+  .play-btn::before {
+    content: "";
+    display: block;
+    width: 0; height: 0;
+    margin-left: 6px;
+    border-left: 22px solid #fff;
+    border-top: 14px solid transparent;
+    border-bottom: 14px solid transparent;
+  }
+
+  /* Затемняющие накладки поверх элементов YouTube */
+  .cover-top, .cover-bottom {
+    position: absolute;
+    left: 0; right: 0;
+    pointer-events: none; /* чтобы клики проходили на плеер */
+    z-index: 2;
+    display: none;
+  }
+  /* Верх: заголовок, кнопка «Поделиться» */
+  .cover-top {
+    top: 0;
+    height: 70px;
+    background: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+  }
+  /* Низ: логотип YouTube и название канала */
+  .cover-bottom {
+    bottom: 0;
+    height: 55px;
+    background: linear-gradient(to top, #000 0%, #000 55%, transparent 100%);
+  }
+  .playing .cover-top,
+  .playing .cover-bottom { display: block; }
+
   .warn-icon { font-size: 44px; margin-bottom: 8px; }
   .actions { margin-top: 20px; }
 </style>
@@ -105,11 +173,20 @@
 
   <!-- Плеер -->
   <div id="playerWrap" class="hidden">
-    <div class="player">
+    <div class="player" id="player">
+      <!-- Накладки поверх элементов YouTube -->
+      <div class="cover-top"></div>
+      <div class="cover-bottom"></div>
+
+      <!-- Наше превью с кнопкой Play -->
+      <div class="preview" id="preview">
+        <div class="play-btn"></div>
+      </div>
+
       <iframe
         id="ytFrame"
         src=""
-        title="YouTube video player"
+        title="Video player"
         frameborder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         referrerpolicy="strict-origin-when-cross-origin"
@@ -123,19 +200,28 @@
 </div>
 
 <script>
-  // ИСПОЛЬЗУЕМ ДОМЕН youtube-nocookie.com
-  const VIDEO_URL = "https://www.youtube-nocookie.com/embed/MC_sxGxu0oY?si=-4k24j67kpGrnVvO";
+  const VIDEO_ID = "MC_sxGxu0oY";
+  const POSTER   = `https://i.ytimg.com/vi/${VIDEO_ID}/maxresdefault.jpg`;
+
+  // Параметры убирают часть брендинга и лишние элементы
+  const VIDEO_URL =
+    `https://www.youtube-nocookie.com/embed/${VIDEO_ID}` +
+    `?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0&playsinline=1`;
 
   const loadingEl  = document.getElementById('loading');
   const blockedEl  = document.getElementById('blocked');
   const allowedEl  = document.getElementById('allowed');
   const playerWrap = document.getElementById('playerWrap');
+  const playerEl   = document.getElementById('player');
+  const preview    = document.getElementById('preview');
   const ytFrame    = document.getElementById('ytFrame');
   const openBtn    = document.getElementById('openBtn');
   const closeBtn   = document.getElementById('closeBtn');
 
-  function show(el) { el.classList.remove('hidden'); }
-  function hide(el) { el.classList.add('hidden'); }
+  preview.style.backgroundImage = `url('${POSTER}')`;
+
+  const show = el => el.classList.remove('hidden');
+  const hide = el => el.classList.add('hidden');
 
   async function checkRegion() {
     try {
@@ -143,13 +229,9 @@
       const data = await res.json();
       const country = (data && data.country_code) ? data.country_code.toUpperCase() : null;
 
-      if (country === 'RU') {
-        hide(loadingEl);
-        show(blockedEl);
-      } else {
-        hide(loadingEl);
-        show(allowedEl);
-      }
+      hide(loadingEl);
+      if (country === 'RU') show(blockedEl);
+      else show(allowedEl);
     } catch (e) {
       hide(loadingEl);
       show(allowedEl);
@@ -157,13 +239,21 @@
   }
 
   openBtn.addEventListener('click', () => {
-    ytFrame.src = VIDEO_URL;
     hide(allowedEl);
     show(playerWrap);
   });
 
+  // Клик по превью → запускаем видео
+  preview.addEventListener('click', () => {
+    ytFrame.src = VIDEO_URL;
+    preview.style.display = 'none';
+    playerEl.classList.add('playing');
+  });
+
   closeBtn.addEventListener('click', () => {
     ytFrame.src = '';
+    playerEl.classList.remove('playing');
+    preview.style.display = 'flex';
     hide(playerWrap);
     show(allowedEl);
   });
