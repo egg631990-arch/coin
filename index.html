@@ -80,6 +80,29 @@
     border: 0;
   }
 
+  /* Накладки, скрывающие интерфейс YouTube */
+  .cover-top, .cover-bottom {
+    position: absolute;
+    left: 0; right: 0;
+    pointer-events: none; /* клики проходят сквозь них на плеер */
+    z-index: 2;
+    display: none;
+  }
+  /* Верхняя панель: заголовок, канал, «Поделиться», шестерёнка */
+  .cover-top {
+    top: 0;
+    height: 75px;
+    background: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+  }
+  /* Нижняя панель: таймлайн, звук, логотип, «Другие видео» */
+  .cover-bottom {
+    bottom: 0;
+    height: 65px;
+    background: linear-gradient(to top, #000 0%, #000 60%, transparent 100%);
+  }
+  .playing .cover-top,
+  .playing .cover-bottom { display: block; }
+
   /* Превью до запуска */
   .preview {
     position: absolute;
@@ -121,29 +144,6 @@
     border-bottom: 14px solid transparent;
   }
 
-  /* Затемняющие накладки поверх элементов YouTube */
-  .cover-top, .cover-bottom {
-    position: absolute;
-    left: 0; right: 0;
-    pointer-events: none; /* чтобы клики проходили на плеер */
-    z-index: 2;
-    display: none;
-  }
-  /* Верх: заголовок, кнопка «Поделиться» */
-  .cover-top {
-    top: 0;
-    height: 70px;
-    background: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
-  }
-  /* Низ: логотип YouTube и название канала */
-  .cover-bottom {
-    bottom: 0;
-    height: 55px;
-    background: linear-gradient(to top, #000 0%, #000 55%, transparent 100%);
-  }
-  .playing .cover-top,
-  .playing .cover-bottom { display: block; }
-
   .warn-icon { font-size: 44px; margin-bottom: 8px; }
   .actions { margin-top: 20px; }
 </style>
@@ -152,13 +152,11 @@
 
 <div class="card">
 
-  <!-- Загрузка -->
   <div id="loading">
     <div class="spinner"></div>
     <p style="margin-top:16px;">Проверяем ваш регион…</p>
   </div>
 
-  <!-- Россия -->
   <div id="blocked" class="hidden">
     <div class="warn-icon">🚫</div>
     <h1>Сервис недоступен в России</h1>
@@ -166,15 +164,13 @@
     <button class="btn" onclick="location.reload()">ОБНОВИТЬ</button>
   </div>
 
-  <!-- Доступно -->
   <div id="allowed" class="hidden">
     <button class="btn" id="openBtn">ОТКРЫТЬ</button>
   </div>
 
-  <!-- Плеер -->
   <div id="playerWrap" class="hidden">
     <div class="player" id="player">
-      <!-- Накладки поверх элементов YouTube -->
+      <!-- Накладки, скрывающие верх и низ плеера -->
       <div class="cover-top"></div>
       <div class="cover-bottom"></div>
 
@@ -203,10 +199,10 @@
   const VIDEO_ID = "MC_sxGxu0oY";
   const POSTER   = `https://i.ytimg.com/vi/${VIDEO_ID}/maxresdefault.jpg`;
 
-  // Параметры убирают часть брендинга и лишние элементы
+  // Параметры убирают субтитры, логотип, аннотации, чужие видео
   const VIDEO_URL =
     `https://www.youtube-nocookie.com/embed/${VIDEO_ID}` +
-    `?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0&playsinline=1`;
+    `?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&cc_load_policy=0&playsinline=1`;
 
   const loadingEl  = document.getElementById('loading');
   const blockedEl  = document.getElementById('blocked');
@@ -243,11 +239,10 @@
     show(playerWrap);
   });
 
-  // Клик по превью → запускаем видео
   preview.addEventListener('click', () => {
     ytFrame.src = VIDEO_URL;
     preview.style.display = 'none';
-    playerEl.classList.add('playing');
+    playerEl.classList.add('playing'); // включаем накладки
   });
 
   closeBtn.addEventListener('click', () => {
