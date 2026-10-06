@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Проверка региона</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #0f0f14;
+    color: #f1f1f1;
+    padding: 20px;
+  }
+  .card {
+    max-width: 700px;
+    width: 100%;
+    background: #1c1c22;
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
+  h1 { margin-top: 0; font-size: 22px; }
+  p { line-height: 1.5; color: #c9c9d1; }
+  .btn {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 14px 34px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: #fff;
+    background: #ff2d2d;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .btn:hover { background: #e01f1f; transform: translateY(-1px); }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid #444;
+    color: #c9c9d1;
+    margin-left: 8px;
+  }
+  .btn.secondary:hover { background: #2a2a33; }
+  .spinner {
+    width: 42px; height: 42px;
+    margin: 0 auto;
+    border: 4px solid #333;
+    border-top-color: #ff2d2d;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  .player {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    margin-top: 20px;
+    background: #000;
+  }
+  .player iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: 0;
+  }
+  .warn-icon { font-size: 44px; margin-bottom: 8px; }
+  .actions { margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- Загрузка -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p style="margin-top:16px;">Проверяем ваш регион…</p>
+  </div>
+
+  <!-- Россия -->
+  <div id="blocked" class="hidden">
+    <div class="warn-icon">🚫</div>
+    <h1>Сервис недоступен в России</h1>
+    <p>Пожалуйста, <b>включите VPN</b> и обновите страницу.<br>Наш сервис не доступен на территории РФ.</p>
+    <button class="btn" onclick="location.reload()">ОБНОВИТЬ</button>
+  </div>
+
+  <!-- Доступно -->
+  <div id="allowed" class="hidden">
+    <button class="btn" id="openBtn">ОТКРЫТЬ</button>
+  </div>
+
+  <!-- Плеер -->
+  <div id="playerWrap" class="hidden">
+    <div class="player">
+      <iframe
+        id="ytFrame"
+        src=""
+        title="YouTube video player"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen></iframe>
+    </div>
+    <div class="actions">
+      <button class="btn secondary" id="closeBtn">ЗАКРЫТЬ</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ИСПОЛЬЗУЕМ ДОМЕН youtube-nocookie.com
+  const VIDEO_URL = "https://www.youtube-nocookie.com/embed/MC_sxGxu0oY?si=-4k24j67kpGrnVvO";
+
+  const loadingEl  = document.getElementById('loading');
+  const blockedEl  = document.getElementById('blocked');
+  const allowedEl  = document.getElementById('allowed');
+  const playerWrap = document.getElementById('playerWrap');
+  const ytFrame    = document.getElementById('ytFrame');
+  const openBtn    = document.getElementById('openBtn');
+  const closeBtn   = document.getElementById('closeBtn');
+
+  function show(el) { el.classList.remove('hidden'); }
+  function hide(el) { el.classList.add('hidden'); }
+
+  async function checkRegion() {
+    try {
+      const res = await fetch('https://ipwho.is/', { cache: 'no-store' });
+      const data = await res.json();
+      const country = (data && data.country_code) ? data.country_code.toUpperCase() : null;
+
+      if (country === 'RU') {
+        hide(loadingEl);
+        show(blockedEl);
+      } else {
+        hide(loadingEl);
+        show(allowedEl);
+      }
+    } catch (e) {
+      hide(loadingEl);
+      show(allowedEl);
+    }
+  }
+
+  openBtn.addEventListener('click', () => {
+    ytFrame.src = VIDEO_URL;
+    hide(allowedEl);
+    show(playerWrap);
+  });
+
+  closeBtn.addEventListener('click', () => {
+    ytFrame.src = '';
+    hide(playerWrap);
+    show(allowedEl);
+  });
+
+  checkRegion();
+</script>
+
+</body>
+</html>
